@@ -2,19 +2,19 @@
 // http://localhost:3000/counter
 
 import * as React from 'react'
-import ReactDOM from 'react-dom'
+import {render,fireEvent} from '@testing-library/react';
 // 🐨 import the `render` and `fireEvent` utilities from '@testing-library/react'
 import Counter from '../../components/counter'
 
 // 💣 remove this. React Testing Library does this automatically!
-beforeEach(() => {
-  document.body.innerHTML = ''
-})
+// beforeEach(() => {
+//   document.body.innerHTML = ''
+// })
 
 test('counter increments and decrements when the buttons are clicked', () => {
   // 💣 remove these two lines, React Testing Library will create the div for you
-  const div = document.createElement('div')
-  document.body.append(div)
+  // const div = document.createElement('div')
+  // document.body.append(div)
 
   // 🐨 swap ReactDOM.render with React Testing Library's render
   // Note that React Testing Library's render doesn't need you to pass a `div`
@@ -22,28 +22,36 @@ test('counter increments and decrements when the buttons are clicked', () => {
   // bunch of utilities on it. For now, let's just grab `container` which is
   // the div that React Testing Library creates for us.
   // 💰 const {container} = render(<Counter />)
-  ReactDOM.render(<Counter />, div)
+  const {container} =  render(<Counter />)
 
   // 🐨 instead of `div` here you'll want to use the `container` you get back
   // from React Testing Library
-  const [decrement, increment] = div.querySelectorAll('button')
-  const message = div.firstChild.querySelector('div')
+  const [decrement, increment] = container.querySelectorAll('button')
+  const message = container.firstChild.querySelector('div')
 
-  expect(message.textContent).toBe('Current count: 0')
+  // expect(message.textContent).toBe('Current count: 0')
+  //can be written in another assertion
+  //you need to extend it through setupTests.js file or in this file import it
+  //import '@testing-library/jest-dom/extend-expect'
+  expect(message).toHaveTextContent('Current count: 0');
+
 
   // 🐨 replace the next two statements with `fireEvent.click(button)`
-  const incrementClickEvent = new MouseEvent('click', {
-    bubbles: true,
-    cancelable: true,
-    button: 0,
-  })
-  increment.dispatchEvent(incrementClickEvent)
-  expect(message.textContent).toBe('Current count: 1')
-  const decrementClickEvent = new MouseEvent('click', {
-    bubbles: true,
-    cancelable: true,
-    button: 0,
-  })
-  decrement.dispatchEvent(decrementClickEvent)
+  // const incrementClickEvent = new MouseEvent('click', {
+  //   bubbles: true,
+  //   cancelable: true,
+  //   button: 0,
+  // })
+  // increment.dispatchEvent(incrementClickEvent)
+  // expect(message.textContent).toBe('Current count: 1')
+  // const decrementClickEvent = new MouseEvent('click', {
+  //   bubbles: true,
+  //   cancelable: true,
+  //   button: 0,
+  // })
+
+  fireEvent.click(increment);
+  fireEvent.click(decrement);
+  
   expect(message.textContent).toBe('Current count: 0')
 })

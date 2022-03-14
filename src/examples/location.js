@@ -3,7 +3,7 @@ import {useCurrentPosition} from 'react-use-geolocation'
 import Spinner from '../components/spinner'
 
 function Location() {
-  const [position, error] = useCurrentPosition()
+  const [position, error] = useCurrentPosition();
 
   if (!position && !error) {
     return <Spinner />

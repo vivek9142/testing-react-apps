@@ -1,16 +1,32 @@
 // mocking Browser APIs and modules - not supported in jest dom
 // http://localhost:3000/location
 
+/*When you have a module or third-party module and you dont want its code  
+to run in test enviroment you can use jest mock api to mock out that 
+particular component , mock implementation of func to do what 
+you want them to do -  be careful you are poking holes in reality that reduces 
+the amount of confidence test can give you*/
+
 import * as React from 'react'
 import {render, screen, act} from '@testing-library/react'
 import Location from '../../examples/location'
+import {useCurrentPosition} from 'react-use-geolocation';
+
+/*Sometimes, a module is doing something you don't want
+ to actually do in tests.Jest makes it relatively simple to mock a module:
+ 
+ now all the function exports from the "react-use-geolocation" module 
+ are jest mock functions so we can call .mockImplementation(...) on them
+ and make assertions like .toHaveBeenCalledTimes(...)
+
+ so now we dont need deferred utility
+*/
+jest.mock('react-use-geolocation');
 
 
 // 🐨 set window.navigator.geolocation to an object that has a getCurrentPosition mock function
 beforeAll(()=>{
 
-  //mock an geolocation method since it is not supported in jsdom
-  //even if it return we need to mock its functionlity to wht it returns
   window.navigator.geolocation = {
     getCurrentPosition : jest.fn()
   }
@@ -18,22 +34,16 @@ beforeAll(()=>{
 // 💰 I'm going to give you this handy utility function
 // it allows you to create a promise that you can resolve/reject on demand.
 
-function deferred() {
-  let resolve, reject
-  const promise = new Promise((res, rej) => {
-    resolve = res
-    reject = rej
-  })
-  return {promise, resolve, reject}
-}
+//not needed after adding mock module
+// function deferred() {
+//   let resolve, reject
+//   const promise = new Promise((res, rej) => {
+//     resolve = res
+//     reject = rej
+//   })
+//   return {promise, resolve, reject}
+// }
 
-// 💰 Here's an example of how you use this:
-// const {promise, resolve, reject} = deferred()
-// promise.then(() => {/* do something */})
-// // do other setup stuff and assert on the pending state
-// resolve()
-// await promise
-// // assert on the resolved state
 
 test('displays the users current location', async () => {
   const fakePosition = {
@@ -43,42 +53,42 @@ test('displays the users current location', async () => {
     }
   };
 
-  ////not needed after mocking module n deleting defered func  
-  const {promise,resolve} = deferred();
-  window.navigator.geolocation.getCurrentPosition.mockImplementation(
-    callback => {
-      //this will run when the promise resolves.
-      promise.then(()=> callback(fakePosition))
-    },
-  )
+  //not needed after adding mock module
+  // const {promise,resolve} = deferred();
+  // window.navigator.geolocation.getCurrentPosition.mockImplementation(
+  //   callback => {
+  //     //this will run when the promise resolves.
+  //     promise.then(()=> callback(fakePosition))
+  //   },
+  // )
 
+  let setReturnValue;
+  function useMockCurrentPosition(){
+    const state = React.useState([]);
+    setReturnValue = state[1];
+    return state[0];
+  }
+
+  
+  useCurrentPosition.mockImplementation(useMockCurrentPosition);
 
   render(<Location/>);
-  
+  //if useCurrentPosition is called with some args so use assertion
+  // expect(useCurrentPosition).toBeCalledWith('args');
+
   expect(screen.getByLabelText(/loading/i)).toBeInTheDocument();
 
-  //before the promise to resolve wait for it to resolve.
-  // resolve();
-  // await promise
+  //this time it is not async so removing it
+  await act(()=> {
+    //this will trigger re-render n this position will be that fake position
 
-  // when dom is updated n side effect is applied so act will help us out
-  /*we're testing things which are visible to the user.so by act we're 
-  telling react,I want to flush all changes,side-effect  
-  as a result of actions I'm about to take*/
-
-  //it is used when we're calling a func which is re-rendering the dom
-
-  //callback is async so async is added n we're going to await act
-  await act(async ()=> {
-    resolve();
-    await promise;
+    //this needs to be wrapped in act since we're calling state updater func
+    // n we want to make sure react flushes all of the side effects that 
+    // are going to be triggered as a result of state update before we
+    //continue with rest of our tests
+    setReturnValue([fakePosition]);
   });
 
-  //get by label will throw err if it will not find the thing in doc
-  // expect(screen.getByLabelText(/loading/i)).not.toBeInTheDocument();
-
-  //so we can switch it to query by label text which will not throw err 
-  //but give null.
   expect(screen.queryByLabelText(/loading/i)).not.toBeInTheDocument();
   
   expect(screen.getByText(/latitude/i)).toHaveTextContent(
